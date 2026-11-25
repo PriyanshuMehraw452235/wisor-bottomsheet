@@ -1,5 +1,5 @@
 // Network-first: a re-upload shows up on the next launch; the last copy is used when offline.
-const CACHE = 'wisor-v3';
+const CACHE = 'wisor-v4';
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'])));
   self.skipWaiting();

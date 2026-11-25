@@ -167,6 +167,7 @@ button{font:inherit;color:inherit}
 .btn-32{width:32px;height:32px;border:0;background:none;padding:0;display:grid;place-items:center;cursor:pointer;border-radius:8px}
 .btn-24{width:24px;height:24px;border:0;background:none;padding:0;display:grid;place-items:center;cursor:pointer;border-radius:50%}
 .chq-chip:active,.btn-32:active,.btn-24:active{transform:scale(.92)}
+.chq-chip:focus:not(:focus-visible),.btn-32:focus:not(:focus-visible),.btn-24:focus:not(:focus-visible),.badge:focus:not(:focus-visible){outline:none}
 .body{position:absolute;left:0;right:0;overflow:hidden}
 .scroll{position:absolute;left:0;right:0;top:0;will-change:transform}
 .to-bottom{position:absolute;left:50%;width:24px;height:24px;margin-left:-12px;border-radius:50%;border:0;background:#1a1a1a;display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .2s;z-index:3;cursor:pointer;padding:0}
@@ -237,11 +238,11 @@ button{font:inherit;color:inherit}
 
 /* ---------- input field / ask pill ---------- */
 .field{position:absolute;left:0;top:0;z-index:20;will-change:transform,width,height}
-.skin-pill{position:absolute;inset:0;border-radius:inherit;background:var(--b-grad-brand);box-shadow:0 4px 12px rgba(106,115,129,.4);overflow:hidden}
+.skin-pill{position:absolute;inset:0;border-radius:inherit;background:var(--b-grad-brand);overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black);mask-image:radial-gradient(white,black);isolation:isolate;transform:translateZ(0)}
 .skin-pill::before{content:"";position:absolute;left:-10%;right:-10%;bottom:-12px;height:28px;background:linear-gradient(90deg,#0be2ff,#00ff85,#07f7ff,#00ff85,#0be2ff);background-size:50% 100%;filter:blur(8px);animation:glow 3s linear infinite}
 .skin-pill::after{content:"";position:absolute;inset:2px;border-radius:inherit;background:#fff}
-/* external glow removed: Figma clips it inside the pill */
-.pill-glow{display:none;position:absolute;left:-8px;right:-8px;bottom:-14px;height:30px;border-radius:30px;filter:blur(14px);background:linear-gradient(90deg,#0be2ff,#00ff85,#07f7ff,#00ff85,#0be2ff);background-size:200% 100%;animation:glow 3s linear infinite;opacity:.55}
+/* pill shadow lives on its own layer so the rounded clip above can't cut it off */
+.pill-glow{position:absolute;inset:0;border-radius:inherit;box-shadow:0 4px 12px rgba(106,115,129,.4);pointer-events:none}
 @keyframes glow{from{background-position:0 0}to{background-position:100% 0}}
 .skin-input{position:absolute;inset:0;border-radius:inherit;background:#fff;box-shadow:inset 0 0 0 1px var(--b-border),0 8px 24px -4px rgba(94,97,106,.06),0 6px 17px -6px rgba(42,48,61,.08)}
 .wordmark{position:absolute;left:18px;top:16px;width:51px;height:16px}
@@ -450,6 +451,13 @@ html.app-mode .island,html.app-mode .status,html.app-mode .home{display:none}
 .g-step .tx{display:flex;flex-direction:column;gap:2px;min-width:0}.g-step .tx b{font-size:14px;line-height:20px;font-weight:500;color:#1a1a1a}.g-step .tx i{font-style:normal;font-size:12px;line-height:16px;color:#7f7f80}
 .g-step.todo .tx b{color:#7f7f80}
 .g-attmini{display:inline-flex;align-items:center;gap:6px;margin-top:4px;align-self:flex-start;border:1px solid rgba(0,39,39,.08);border-radius:6px;padding:4px 8px;background:#fff;font-size:12px;color:#1a1a1a;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fu-wrap{display:flex;flex-direction:column}
+.fu-h{font-size:15px;line-height:20px;font-weight:600;color:#1a1a1a;margin-bottom:4px}
+.fu{display:flex;align-items:center;gap:14px;width:100%;padding:12px 0;border:0;border-bottom:1px solid rgba(0,39,39,.08);background:none;text-align:left;font-family:inherit;font-size:15px;line-height:22px;color:#1a1a1a;cursor:pointer}
+.fu:last-child{border-bottom:0}
+.fu:active{opacity:.6}
+.fu .ic{width:32px;height:32px;border-radius:50%;background:#f3f5f5;display:grid;place-items:center;flex-shrink:0}
+.fu .ar{margin-left:auto;flex-shrink:0}
 .g-pdf{display:inline-grid;place-items:center;background:#e53935;color:#fff;font-size:7px;font-weight:700;border-radius:3px;width:18px;height:18px;flex-shrink:0}
 /* skeleton */
 .g-skel{padding:14px;display:flex;flex-direction:column;gap:10px}
@@ -511,6 +519,8 @@ html.app-mode .island,html.app-mode .status,html.app-mode .home{display:none}
 /* Install as an app (Android Chrome "Install app" / iPhone "Add to Home Screen") when hosted, e.g. on Netlify */
 (function(){
   if (!/^https?:$/.test(location.protocol) || /claude/.test(location.hostname)) return;
+  // iOS switches home-screen apps to a solid black status bar when a manifest is present — keep it Android-only
+  if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return;
   // Works as a single file: the manifest and offline helper are used only if they were uploaded alongside it.
   fetch('manifest.webmanifest', { method:'HEAD', cache:'no-store' }).then(function(r){
     if (!r.ok) return;
@@ -896,7 +906,7 @@ function render(){
   field.style.opacity = Math.max(0, Math.min(1, P.fop));
   field.style.visibility = (P.fop <= 0.01 || fw < 2) ? 'hidden' : 'visible';
   const pl = Math.max(0, Math.min(1, P.pill));
-  skinPill.style.opacity = pl; pillGlow.style.opacity = 0.55 * pl;
+  skinPill.style.opacity = pl; pillGlow.style.opacity = pl;
   skinInput.style.opacity = 1 - pl;
   const filled = ta.value.length > 0;
   const mq = document.getElementById('marquee'); if (mq) mq.classList.toggle('typing', ta.value.trim().length > 0); // hide suggestion pills while typing
@@ -1094,10 +1104,11 @@ const ANS = {
       note:'Tap or drag across the chart to see each month.' }) +
     GU.nums([{ l:'Credit score', v:'756', d:'7 vs Oct' }, { l:'Rank on CheQ', v:'Top 12%', d:'2% vs Oct' }]) +
     A.p('Lower usage and on-time payments drove the increase.') +
-    A.list([['Lower card usage — +5 pts', 'Your overall usage fell from 18% to 13.23%.'], ['On-time payments — +2 pts', 'All 6 bills this month were paid before the due date.']]) +
+    A.list([['Lower card usage: +5 pts', 'Your overall usage fell from 18% to 13.23%.'], ['On time payments: +2 pts', 'All 6 bills this month were paid before the due date.']]) +
     A.tip('Keep usage under 30% and keep paying on time to hold on to this gain.'),
-  usage: () =>
-    A.p('Overall, no. You’re using 13.23% of your total limit, well under the 30% lenders like to see.') +
+  usage: (q = '') =>
+    A.p(/too high|high/i.test(q) ? 'Overall, no. You’re using 13.23% of your total limit, well under the 30% lenders like to see.'
+      : 'Your last bureau report (12 Nov) shows 13.23% utilisation across your 3 cards, well under the 30% lenders like to see.') +
     GU.card({ title:'Credit usage · All cards', sub:'3 credit cards · limit ₹3,50,000', badge:['Good', 'ok'],
       body:GU.progress({ pctLabel:'13.23%', of:'₹46,300 of ₹3,50,000', pct:13.23, breakAt:30, left:'Under 30% helps your score', right:'₹58,700 to 30%' }) }) +
     A.p('But your HDFC card is above 30% on its own:') +
@@ -1167,12 +1178,17 @@ const ANS = {
       { n:'Food & dining', sub:'21 payments', amt:'₹10,155.50', pct:32.14, c:PALETTE[1] }, { n:'Shopping', sub:'12 payments', amt:'₹9,840.00', pct:31.14, c:PALETTE[0] },
       { n:'Travel', sub:'6 payments', amt:'₹4,860.00', pct:15.38, c:PALETTE[2] }, { n:'Bills & utilities', sub:'4 payments', amt:'₹4,434.50', pct:14.03, c:PALETTE[3] },
       { n:'Groceries', sub:'3 payments', amt:'₹2,310.00', pct:7.31, c:PALETTE[4] }] }) }),
+  enquiry: () =>
+    GU.alert('success', 'No new enquiries found', 'Nothing new since your last report on <b>12 Nov</b>. Your score isn’t being pulled down by fresh applications.') +
+    GU.nums([{ l:'Hard enquiries', v:'1', d:'Last 12 months', t:'flat' }, { l:'Last enquiry', v:'14 Mar', d:'HDFC Bank · card', t:'flat' }]) +
+    A.p('I check your report every month and will tell you if a new enquiry shows up that you don’t recognise.'),
   fallback: () =>
     A.p('Here’s where your credit stands today:') +
     GU.nums([{ l:'CIBIL score', v:'756', d:'7 vs Oct' }, { l:'Rank on CheQ', v:'Top 12%', d:'2% vs Oct' }, { l:'Credit usage', v:'13.23%', d:'2.1% vs Oct', t:'down' }, { l:'On-time payments', v:'241/242', d:'Excellent' }]) +
     A.p('The quickest wins right now are bringing your HDFC card usage below 30% and clearing your overdue amount.')
 };
 const ANSWERS = [
+  { match:/enquir/i, key:'enquiry' }, { match:/credit profile|my profile/i, key:'fallback' },
   { match:/card limit|limit/i, key:'limit' }, { match:/utili[sz]ation|usage/i, key:'usage' },
   { match:/next loan|apply|new loan/i, key:'loan' }, { match:/history/i, key:'history' },
   { match:/interest|rate|offer/i, key:'rate' }, { match:/emi/i, key:'emi' },
@@ -1181,7 +1197,7 @@ const ANSWERS = [
   { match:/boost|improve|increase.*score|raise/i, key:'boost' }, { match:/cost|lose|hurt|drop|points/i, key:'cost' }
 ];
 function answerFor(q){
-  for (const a of ANSWERS) if (a.match.test(q)) return { kind:'custom', html: a.cta ? CTA[a.cta].html : ANS[a.key]() };
+  for (const a of ANSWERS) if (a.match.test(q)) return { kind:'custom', html: a.cta ? CTA[a.cta].html : ANS[a.key](q) };
   return { kind:'custom', html:ANS.fallback() };
 }
 const CTA = {
@@ -1286,6 +1302,19 @@ const ICON = {
   done:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="#239D63" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   retry:'<svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect width="28" height="28" rx="14" fill="#39D67A" fill-opacity="0.1"/><path d="M11.3916 7.57104C12.655 7.05844 14.0417 6.93017 15.3779 7.20093C16.7032 7.46953 17.9204 8.11991 18.8809 9.07104L20.5625 10.6101V8.93726C20.5626 8.52315 20.8984 8.18726 21.3125 8.18726C21.7266 8.18728 22.0624 8.52317 22.0625 8.93726V12.3123C22.0625 12.7265 21.7267 13.0623 21.3125 13.0623H17.9375C17.5233 13.0623 17.1875 12.7265 17.1875 12.3123C17.1876 11.8982 17.5234 11.5623 17.9375 11.5623H19.3818L17.8691 10.1775C17.861 10.1701 17.8525 10.1628 17.8447 10.155C17.089 9.3994 16.1274 8.88293 15.0801 8.67065C14.0328 8.45846 12.9462 8.55997 11.9561 8.96167C10.966 9.36348 10.115 10.0475 9.51172 10.9294C8.9085 11.8114 8.57902 12.8522 8.56348 13.9207C8.54801 14.9892 8.84732 16.0391 9.4248 16.9382C10.0023 17.8374 10.8324 18.5469 11.8105 18.9773C12.7885 19.4075 13.872 19.5398 14.9248 19.3582C15.9777 19.1764 16.9542 18.688 17.7314 17.9548C18.0326 17.6706 18.5077 17.684 18.792 17.9851C19.0763 18.2864 19.062 18.7614 18.7607 19.0457C17.7692 19.9811 16.5239 20.6037 15.1807 20.8357C13.8371 21.0676 12.454 20.8994 11.2061 20.3503C9.95813 19.8013 8.89989 18.8959 8.16309 17.7488C7.42626 16.6015 7.04374 15.2625 7.06348 13.8992C7.08325 12.5359 7.50375 11.2081 8.27344 10.0828C9.04319 8.95742 10.1282 8.08373 11.3916 7.57104Z" fill="#29BE70"/></svg>'
 };
+const FOLLOW_UPS = {
+  why: ['Can you tell me more about my credit profile?', 'Can you tell me what my utilisation reported in the last bureau report?', 'Did you detect any new enquiry in my credit profile?']
+};
+function followUpsFor(t){
+  if (t.a === 'long' || (t.a === 'custom' && /why.*(score|points)|go up|went up/i.test(t.q))) return FOLLOW_UPS.why;
+  return null;
+}
+function followUpsHTML(t, i){
+  const list = followUpsFor(t); if (!list || i !== state.convo.length - 1) return '';
+  const chat = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2.2a5.8 5.8 0 0 0-5 8.75l-.7 2.33a.4.4 0 0 0 .5.5l2.33-.7A5.8 5.8 0 1 0 8 2.2Z" stroke="#29BE70" stroke-width="1.4" stroke-linejoin="round"/><path d="M5.6 7h4.8M5.6 9.2h3.2" stroke="#29BE70" stroke-width="1.4" stroke-linecap="round"/></svg>';
+  const arrow = '<svg class="ar" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M11 3 3.5 10.5M3.5 4.5v6h6" stroke="#B0B1B2" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  return `<div class="fu-wrap reveal"><div class="fu-h">Suggested follow-ups</div>${list.map(q => `<button class="fu" data-act="fu" data-q="${q}"><span class="ic">${chat}</span><span>${q}</span>${arrow}</button>`).join('')}</div>`;
+}
 function feedbackHTML(i, t){
   const last = t.a === 'error'
     ? `<button class="fb-btn fb-retry" data-fb="retry" data-i="${i}" aria-label="Try again">${ICON.retry}</button>`
@@ -1297,20 +1326,20 @@ function feedbackHTML(i, t){
 }
 function answerHTML(t, i){
   if (t.a === null) return answerBody(t, i);
-  return `<div class="turn-a${t.a === 'error' ? ' err' : ''}" data-i="${i}">${answerBody(t, i)}${feedbackHTML(i, t)}</div>`;
+  return `<div class="turn-a${t.a === 'error' ? ' err' : ''}" data-i="${i}">${answerBody(t, i)}${feedbackHTML(i, t)}${followUpsHTML(t, i)}</div>`;
 }
 function answerBody(t, i){
   if (t.a === 'agent') return `<div class="ans">${agentHTML(t, i)}</div>`;
   if (t.a === null) return `<div class="thinking busy">${logo(36)}<span>Finding the best answers</span></div>`;
   if (t.a === 'error') return `<div class="thinking reveal">${logo(36)}<span>Unable to connect to server</span></div>`;
   if (t.a === 'custom') return `<div class="ans reveal">${t.html}</div>`;
-  if (t.a === 'short') return `<div class="ans reveal"><p>Good news! Your CIBIL score went up 7 pts since last month, from 783 to 790.</p><p>Do you want me to draft any personalise steps to increase it even further in 3 months?</p></div>`;
+  if (t.a === 'short') return `<div class="ans reveal"><p>Good news! Your CIBIL score went up 7 pts since last month, from 749 to 756.</p><p>Do you want me to draft any personalise steps to increase it even further in 3 months?</p></div>`;
   return `<div class="ans reveal">
-    <p>Good news! Your CIBIL score went up 7 pts since last month, from 783 to 790.</p>
-    <div class="tile"><span class="l">Credit Score</span><span class="v">790</span><span class="d"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 12.56c.41 0 .75-.34.75-.75V4l2.66 2.66a.75.75 0 0 0 1.06-1.06L7.53 1.66a.75.75 0 0 0-1.06 0L2.53 5.6a.75.75 0 0 0 1.06 1.06L6.25 4v7.81c0 .41.34.75.75.75Z" fill="#29BE70"/></svg>+7 since Oct’26</span></div>
-    <p>Your lower credit usage and on-time payments may have contributed to the increase.</p>
-    <ol><li><b>Lower card usage — +5 pts</b><br>Your credit usage fell from 31% to 22% as you spent less on your cards.</li><li><b>On-time payments — +2 pts</b><br>All your card bills this month were paid before the due date.</li></ol>
-    <div class="tip"><div class="top">${logo(42)}<span class="lbl">Wisor Summary</span></div><div class="box">Keep card usage under 30% and keep paying on time to hold on to this gain. Your score can still change as new information is reported</div></div>
+    <p>Good news! Your CIBIL score went up 7 pts since last month, from 749 to 756.</p>
+    <div class="tile"><span class="l">Credit Score</span><span class="v">756</span><span class="d"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 12.56c.41 0 .75-.34.75-.75V4l2.66 2.66a.75.75 0 0 0 1.06-1.06L7.53 1.66a.75.75 0 0 0-1.06 0L2.53 5.6a.75.75 0 0 0 1.06 1.06L6.25 4v7.81c0 .41.34.75.75.75Z" fill="#29BE70"/></svg>+7 since Oct’26</span></div>
+    <p>Your lower credit usage and on time payments may have contributed to the increase.</p>
+    <ol><li><b>Lower card usage: +5 pts</b><br>Your credit usage fell from 31% to 22% as you spent less on your cards.</li><li><b>On time payments: +2 pts</b><br>All your card bills this month were paid before the due date.</li></ol>
+    <div class="tip"><div class="top">${logo(42)}<span class="lbl">Wisor Summary</span></div><div class="box">Keep card usage under 30% and keep paying on time to hold on to this gain. Your score can change when the new bureau pull is reported</div></div>
   </div>`;
 }
 function renderContent(){
@@ -1321,8 +1350,12 @@ function renderContent(){
 }
 function layoutGreeting(bodyH){
   const g = document.getElementById('greet'); if (!g) return;
-  const pad = bodyH <= 308 ? 33 + (bodyH - 278) * 0.83 : 58 + (bodyH - 308) * 0.5;
-  g.style.paddingTop = Math.max(0, pad) + 'px';
+  // Small sheet / keyboard: Figma positions. Taller sheet: pills sit just above the input, heading centred above them.
+  const HEAD = 88, PILLS = 95, GAP = 16;
+  const head = bodyH <= 308 ? 33 + (bodyH - 278) * 0.83 : Math.max(58, (bodyH - PILLS - GAP - HEAD) / 2);
+  const pillsTop = Math.max(head + HEAD + 50, bodyH - PILLS - GAP);
+  g.style.paddingTop = Math.max(0, head) + 'px';
+  const mq = document.getElementById('marquee'); if (mq) mq.style.marginTop = Math.max(24, pillsTop - head - HEAD) + 'px';
 }
 
 /* ===================== Chat scrolling (custom, hands over to the sheet) ===================== */
@@ -1735,7 +1768,8 @@ $('#newChat').addEventListener('click', (e) => {
   e.stopPropagation(); if (state.busy) return;
   state.convo = []; renderContent(); scrollY = 0;
   if (state.mode === 'kb') { state.before = 'default'; render(); return; }
-  toMode('default');
+  setMode('default'); haptic('light');
+  ta.focus();   // fresh chat opens straight into typing: sheet moves to the keyboard state, keyboard slides up
 });
 field.addEventListener('pointerdown', (e) => {
   if (state.mode === 'collapsed' && !e.target.closest('#send')) { e.preventDefault(); ta.focus(); }
@@ -1864,6 +1898,7 @@ scroll.addEventListener('click', (e) => {
   const ag = t && t.agent;
   switch (act){
     case 'toast': haptic('light'); toast(b.dataset.msg); break;
+    case 'fu': haptic('light'); ask(b.dataset.q); break;
     case 'lc': lineTip(b.closest('svg'), k); break;
     case 'bar': {
       const wrap = b.closest('.g-bars'); wrap.classList.add('sel'); wrap.querySelectorAll('.g-col').forEach(c => c.classList.toggle('on', c === b)); haptic('light');
